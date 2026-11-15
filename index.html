@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101722">
+  <meta name="description" content="Transfer files between nearby screens using QR light frames. No Wi-Fi, Bluetooth, or internet needed during transfer.">
+  <title>OfflineBeam — File transfer by light</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/QRMode.js"></script>
+  <script src="vendor/QRErrorCorrectLevel.js"></script>
+  <script src="vendor/QRMaskPattern.js"></script>
+  <script src="vendor/QRMath.js"></script>
+  <script src="vendor/QRBitBuffer.js"></script>
+  <script src="vendor/QR8bitByte.js"></script>
+  <script src="vendor/QRPolynomial.js"></script>
+  <script src="vendor/QRRSBlock.js"></script>
+  <script src="vendor/QRUtil.js"></script>
+  <script src="vendor/qrcode.js"></script>
+  <script defer crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="OfflineBeam home">
+        <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+        <span>Offline<span class="brand-light">Beam</span></span>
+      </a>
+      <div class="top-status"><span class="status-dot"></span><span id="offline-status">OFFLINE SETUP AVAILABLE</span></div>
+    </header>
+
+    <section class="hero" id="top">
+      <div class="eyebrow"><span class="eyebrow-line"></span> SHARE WITHOUT A SIGNAL</div>
+      <h1>Files move.<br><em>Networks don’t.</em></h1>
+      <p class="hero-copy">Send photos, videos, music, documents and ZIP files between two screens using nothing but light and a camera.</p>
+      <div class="hero-tags"><span><b>01</b> Pick a file</span><span class="tag-arrow">→</span><span><b>02</b> Scan the stream</span><span class="tag-arrow">→</span><span><b>03</b> Save it</span></div>
+    </section>
+
+    <section class="workspace" aria-label="File transfer workspace">
+      <div class="mode-switch" role="tablist" aria-label="Transfer mode">
+        <button class="mode-tab active" id="send-tab" role="tab" aria-selected="true" aria-controls="send-panel"> <span class="tab-symbol">↑</span> Send a file</button>
+        <button class="mode-tab" id="receive-tab" role="tab" aria-selected="false" aria-controls="receive-panel"><span class="tab-symbol">⌁</span> Receive a file</button>
+      </div>
+
+      <section class="panel active" id="send-panel" role="tabpanel" aria-labelledby="send-tab">
+        <div class="panel-heading">
+          <div><div class="step-label">01 / TRANSMIT</div><h2>Choose what to send</h2><p>Any file type works. The file stays on this device.</p></div>
+          <div class="big-icon send-icon"><span>↑</span></div>
+        </div>
+        <label class="drop-zone" id="drop-zone" for="file-input">
+          <input id="file-input" type="file">
+          <span class="upload-orb"><span>↥</span></span>
+          <strong id="drop-title">Drop a file here</strong>
+          <span class="drop-sub">or <span class="browse-link">browse your device</span></span>
+          <span class="file-types">PHOTOS · VIDEOS · AUDIO · ZIP · PDF · ANY FILE</span>
+        </label>
+        <div class="selected-file hidden" id="selected-file">
+          <div class="file-glyph" id="file-glyph">▧</div>
+          <div class="file-details"><strong id="file-name">filename</strong><span id="file-meta">0 bytes</span></div>
+          <button class="icon-button" id="remove-file" aria-label="Remove selected file">×</button>
+        </div>
+        <div class="privacy-note"><span class="lock-icon">◇</span><span><strong>Local by design.</strong> Your file is processed in this browser and is never uploaded to a server.</span></div>
+        <button class="primary-button full-button" id="prepare-button" disabled>Prepare QR stream <span>→</span></button>
+        <div class="sender-stage hidden" id="sender-stage">
+          <div class="stage-topline"><span class="live-dot"></span> QR STREAM READY <span class="stage-spacer"></span><span id="frame-counter">FRAME 1 / 1</span></div>
+          <div class="qr-stage">
+            <canvas id="qr-canvas" width="480" height="480" aria-label="Animated file transfer QR code"></canvas>
+          </div>
+          <div class="stream-caption"><strong id="stream-file-name">your-file</strong><span id="stream-estimate">Keep this screen open while the other device scans.</span></div>
+          <div class="stream-controls">
+            <button class="primary-button play-button" id="play-button"><span id="play-icon">Ⅱ</span><span id="play-label">Pause stream</span></button>
+            <label class="speed-control" for="speed-select">FRAME SPEED <select id="speed-select"><option value="140">Fast</option><option value="220" selected>Balanced</option><option value="350">Careful</option></select></label>
+          </div>
+          <div class="tip-line"><span>✦</span> Turn screen brightness up. Keep the devices facing each other, about 15–25 cm apart.</div>
+          <button class="text-button" id="new-transfer">Choose another file</button>
+        </div>
+      </section>
+
+      <section class="panel" id="receive-panel" role="tabpanel" aria-labelledby="receive-tab" hidden>
+        <div class="panel-heading">
+          <div><div class="step-label">02 / RECEIVE</div><h2>Scan the light stream</h2><p>Point this device's camera at the QR code on the sending screen.</p></div>
+          <div class="big-icon receive-icon"><span>⌁</span></div>
+        </div>
+        <div class="camera-box" id="camera-box">
+          <video id="camera-video" playsinline muted></video>
+          <div class="camera-placeholder" id="camera-placeholder">
+            <div class="camera-reticle"><i></i><i></i><i></i><i></i><span>⌗</span></div>
+            <strong>Your scanner will appear here</strong>
+            <span>Allow camera access when prompted</span>
+          </div>
+          <div class="camera-overlay hidden" id="camera-overlay"><span class="scan-chip"><i></i> SCANNING FOR FRAMES</span></div>
+        </div>
+        <div class="receive-progress hidden" id="receive-progress">
+          <div class="progress-heading"><span id="receive-file-name">Incoming file</span><strong id="receive-percent">0%</strong></div>
+          <div class="progress-track"><span id="receive-progress-fill"></span></div>
+          <div class="progress-sub"><span id="receive-count">0 of 0 frames captured</span><span id="receive-size">0 B</span></div>
+        </div>
+        <div class="receive-actions">
+          <button class="primary-button full-button" id="scan-button">Start camera <span>⌕</span></button>
+          <button class="secondary-button full-button hidden" id="stop-scan">Stop scanning</button>
+        </div>
+        <div class="scan-message" id="scan-message" role="status">When all frames are captured, your file will be ready to save.</div>
+        <div class="complete-card hidden" id="complete-card">
+          <div class="complete-check">✓</div><div><strong>File received successfully</strong><span id="complete-meta">Your file is ready to save.</span></div>
+          <a class="download-button" id="download-link" href="#" download>Save file ↓</a>
+        </div>
+        <button class="text-button hidden" id="reset-receive">Receive another file</button>
+      </section>
+    </section>
+
+    <section class="how-section">
+      <div class="how-head"><span class="step-label">THE IDEA</span><h2>Nothing travels over a network.</h2><p>One screen flashes data as QR frames. The other camera reads and rebuilds the file locally.</p></div>
+      <div class="how-grid">
+        <article class="how-card"><span class="how-number">01</span><div class="how-icon">▤</div><h3>Break it up</h3><p>Your file is split into small, numbered pieces in your browser.</p></article>
+        <article class="how-card"><span class="how-number">02</span><div class="how-icon">▦</div><h3>Show the light</h3><p>The sender cycles through QR frames. Missing frames are sent again on the next loop.</p></article>
+        <article class="how-card"><span class="how-number">03</span><div class="how-icon">⇩</div><h3>Put it back</h3><p>The receiver checks every piece, verifies the file, and lets you save it.</p></article>
+      </div>
+    </section>
+
+    <aside class="reality-note">
+      <span class="reality-icon">i</span><div><strong>A different kind of wireless.</strong><p>QR transfer is deliberately simple, but it's slower than Wi‑Fi or Bluetooth. Small files are best; large videos can take a long time. The app must be opened twice while online so its scanner can be cached. Camera scanning requires HTTPS and browser camera permission. QR frames are not encrypted in this prototype, so only transfer files you are comfortable showing on both screens.</p></div>
+    </aside>
+
+    <footer class="footer"><span>OFFLINEBEAM <span class="footer-sep">/</span> FILES BY LIGHT</span><span>NO ACCOUNT · NO SERVER STORAGE · NO NETWORK DURING TRANSFER</span></footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
